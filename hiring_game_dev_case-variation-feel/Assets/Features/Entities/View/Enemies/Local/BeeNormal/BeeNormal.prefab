@@ -48,8 +48,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rotationSpeed: 10
   rendererFlicker: {fileID: 1149100000000000000}
-  damageNumberPrefab: {fileID: 11400001, guid: 61a4f440074e4bcbbbbdb299cd603ee6, type: 3}
   animator: {fileID: 6926839794853975167}
+  damageNumberPrefab: {fileID: 11400001, guid: 61a4f440074e4bcbbbbdb299cd603ee6, type: 3}
 --- !u!114 &1149100000000000000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -65,8 +65,8 @@ MonoBehaviour:
   targetRenderers:
   - {fileID: 6926839794849704639}
   flickerColor: {r: 1, g: 1, b: 1, a: 1}
-  duration: 0.2
-  interval: 0.1
+  duration: 0.35
+  interval: 0.15
   colorProperty: _BaseColor
   textureProperty: _BaseMap
   replaceBaseTexture: 1

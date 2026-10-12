@@ -8,6 +8,7 @@ namespace Game.GamePlay.Enemies
 {
 	public class EnemyView : MonoBehaviour
 	{
+		private const float MinMovementDistance = 0.001f;
 		private static readonly int SpeedHash = Animator.StringToHash("Speed");
 		private static readonly int AttackHash = Animator.StringToHash("Attack");
 		private static readonly int HitHash = Animator.StringToHash("Hit");
@@ -41,30 +42,26 @@ namespace Game.GamePlay.Enemies
 			_heroController = ServicesLocator.Instance.GetService<EntitiesService>().HeroController;
 		}
 
-		private void Update()
-		{
-			if (IsDead || _heroController == null || _heroController.CurrentState.IsDead) return;
-
-			Vector3 heroPosition = _heroController.CurrentState.Position;
-			Vector3 direction = (heroPosition - transform.position).normalized;
-
-			if (direction.sqrMagnitude > 0.01f)
-			{
-				Quaternion targetRotation = Quaternion.LookRotation(direction);
-				transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-			}
-		}
-
 		private void LateUpdate()
 		{
-			if (animator == null) return;
+			Vector3 movement = transform.position - _previousPosition;
+			if (!IsDead && _heroController != null && !_heroController.CurrentState.IsDead)
+			{
+				bool hasMoved = movement.sqrMagnitude > MinMovementDistance * MinMovementDistance;
+				Vector3 direction = hasMoved ? movement : _heroController.CurrentState.Position - transform.position;
+				if (direction.sqrMagnitude > MinMovementDistance * MinMovementDistance)
+				{
+					Quaternion targetRotation = Quaternion.LookRotation(direction);
+					transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+				}
+			}
 			float speed = 0f;
 			if (!IsDead && Time.deltaTime > 0f && _moveSpeed > 0f)
 			{
-				speed = (transform.position - _previousPosition).magnitude / (Time.deltaTime * _moveSpeed);
+				speed = movement.magnitude / (Time.deltaTime * _moveSpeed);
 			}
 			_previousPosition = transform.position;
-			animator.SetFloat(SpeedHash, Mathf.Clamp01(speed));
+			if (animator != null) animator.SetFloat(SpeedHash, Mathf.Clamp01(speed));
 		}
 
 		public void PlayAttack()
@@ -77,6 +74,7 @@ namespace Game.GamePlay.Enemies
 		{
 			IsDead = true;
 			if (animator == null) return;
+			
 			animator.SetFloat(SpeedHash, 0f);
 			animator.SetBool(IsDeadHash, true);
 		}
@@ -90,6 +88,7 @@ namespace Game.GamePlay.Enemies
 		{
 			rendererFlicker?.Play();
 			if (IsDead || animator == null) return;
+			
 			animator.SetTrigger(HitHash);
 		}
 	}

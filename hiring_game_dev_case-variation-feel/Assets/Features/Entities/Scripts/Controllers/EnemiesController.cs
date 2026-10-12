@@ -90,7 +90,8 @@ namespace Game.GamePlay.Enemies
 			}
 			else
 			{
-				EnemyState updatedEnemy = new EnemyState(enemyState.Id, enemyState.Position, newHealth, enemyState.Config);
+				EnemyState updatedEnemy = new EnemyState(enemyState.Id, enemyState.Position, newHealth,
+					enemyState.Config, curveSide: enemyState.CurveSide);
 				_enemies[enemyState.Id] = updatedEnemy;
 			}
 		}
@@ -119,7 +120,9 @@ namespace Game.GamePlay.Enemies
 
 			int enemyId = _nextEnemyId++;
 			EnemyConfig enemyConfig = EnemiesConfig.Instance.Enemies[0];
-			EnemyState newEnemy = new EnemyState(enemyId, spawnPosition, enemyConfig.InitialHealth, enemyConfig);
+			float curveSide = UnityEngine.Random.value < 0.5f ? -1f : 1f;
+			EnemyState newEnemy = new EnemyState(enemyId, spawnPosition, enemyConfig.InitialHealth,
+				enemyConfig, curveSide: curveSide);
 
 			_enemies[enemyId] = newEnemy;
 			OnEnemySpawned?.Invoke(newEnemy);
@@ -164,10 +167,11 @@ namespace Game.GamePlay.Enemies
 
 			if (distanceToHero > enemy.Config.AttackRange)
 			{
-				Vector3 direction = (heroPosition - enemy.Position).normalized;
+				Vector3 direction = GetMovementDirection(enemy, heroPosition);
 				Vector3 newPosition = enemy.Position + direction * (enemy.Config.Speed * Time.deltaTime);
 
-				EnemyState updatedEnemy = new EnemyState(enemy.Id, newPosition, enemy.Health, enemy.Config, enemy.LastAttackTime);
+				EnemyState updatedEnemy = new EnemyState(enemy.Id, newPosition, enemy.Health,
+					enemy.Config, enemy.LastAttackTime, enemy.CurveSide);
 				_enemies[enemy.Id] = updatedEnemy;
 				OnEnemyPositionChanged?.Invoke(updatedEnemy);
 			}
@@ -177,13 +181,24 @@ namespace Game.GamePlay.Enemies
 				{
 					_heroController.TakeHit(enemy.Config.AttackDamage);
 
-					EnemyState updatedEnemy = new EnemyState(enemy.Id, enemy.Position, enemy.Health, enemy.Config, Time.time);
+					EnemyState updatedEnemy = new EnemyState(enemy.Id, enemy.Position, enemy.Health,
+						enemy.Config, Time.time, enemy.CurveSide);
 					_enemies[enemy.Id] = updatedEnemy;
 					OnEnemyAttackPerformed?.Invoke(enemy.Id);
 				}
 			}
 		}
 		
+		private static Vector3 GetMovementDirection(EnemyState enemy, Vector3 heroPosition)
+		{
+			Vector3 toHero = heroPosition - enemy.Position;
+			Vector3 forward = toHero.normalized;
+			Vector3 sideways = Vector3.Cross(Vector3.up, forward);
+			float influence = Mathf.Clamp01((toHero.magnitude - enemy.Config.AttackRange)
+				/ enemy.Config.CurveFadeDistance);
+			return (forward + sideways * (enemy.Config.CurveStrength * influence * enemy.CurveSide)).normalized;
+		}
+
 		private async UniTask KillEnemy(int enemyId)
 		{
 			if (!_enemies.Remove(enemyId)) return;
