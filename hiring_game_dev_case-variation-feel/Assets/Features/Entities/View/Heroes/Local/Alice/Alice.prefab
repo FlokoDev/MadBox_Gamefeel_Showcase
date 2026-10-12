@@ -530,6 +530,26 @@ MonoBehaviour:
   rotationSpeed: 10
   weaponSlot: {fileID: 1993995369825730728}
   rendererFlicker: {fileID: 1149100000000000000}
+--- !u!114 &1149100000000000000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3206923099687242354}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91acafc6e9ac4e05adb50e7ea9f2c52d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetRenderers:
+  - {fileID: 1042267208002864592}
+  flickerColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  duration: 0.25
+  interval: 0.1
+  colorProperty: _BaseColor
+  textureProperty: _BaseMap
+  replaceBaseTexture: 1
 --- !u!1 &3512741108777884559
 GameObject:
   m_ObjectHideFlags: 0
@@ -1045,23 +1065,3 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6101898001689560141}
   m_LocalEulerAnglesHint: {x: -3.8643463, y: -14.635269, z: -6.7095065}
---- !u!114 &1149100000000000000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3206923099687242354}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 91acafc6e9ac4e05adb50e7ea9f2c52d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetRenderers:
-  - {fileID: 1042267208002864592}
-  flickerColor: {r: 1, g: 0.25, b: 0.25, a: 1}
-  duration: 0.12
-  interval: 0.04
-  colorProperty: _BaseColor
-  textureProperty: _BaseMap
-  replaceBaseTexture: 1

@@ -24,6 +24,7 @@ namespace Game.GamePlay.Heroes
 
 		// Events
 		public event Action<HeroState> OnStateChanged;
+		public event Action<int> OnDamaged;
 
 		public UniTask<bool> Initialize(EnemiesController enemiesController, JoystickInputService joystickInputService, WeaponsService weaponsService)
 		{
@@ -44,9 +45,11 @@ namespace Game.GamePlay.Heroes
 			if (_currentState.IsDead) return;
 
 			int newHealth = Mathf.Max(0, _currentState.Health - damage);
+			int appliedDamage = _currentState.Health - newHealth;
 			Debug.Log($"Hero is taking a hit. Health : {_currentState.Health} -> {newHealth}");
 			_currentState = new HeroState(_currentState.Position, newHealth, _currentState.LastAttackTime);
 			OnStateChanged?.Invoke(_currentState);
+			if (appliedDamage > 0) OnDamaged?.Invoke(appliedDamage);
 
 			if (_currentState.IsDead)
 			{

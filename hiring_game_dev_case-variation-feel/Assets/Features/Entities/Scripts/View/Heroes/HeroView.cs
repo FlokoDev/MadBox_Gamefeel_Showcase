@@ -13,6 +13,7 @@ namespace Game.GamePlay.Heroes
 		[SerializeField] private Animator animator;
 		[SerializeField] private float rotationSpeed = 10f;
 		[SerializeField] private Transform weaponSlot;
+		[SerializeField] private RendererFlicker rendererFlicker;
 
 		private JoystickInputService _joystickInputService;
 		private HeroController _heroController;
@@ -33,6 +34,7 @@ namespace Game.GamePlay.Heroes
 
 			_joystickInputService.OnStateChanged += OnJoystickStateChanged;
 			_heroController.OnStateChanged += OnHeroStateChanged;
+			_heroController.OnDamaged += OnDamaged;
 			_weaponsService.OnWeaponChanged += OnWeaponChanged;
 
 			OnJoystickStateChanged(_joystickInputService.CurrentState);
@@ -50,6 +52,7 @@ namespace Game.GamePlay.Heroes
 			if (_heroController != null)
 			{
 				_heroController.OnStateChanged -= OnHeroStateChanged;
+				_heroController.OnDamaged -= OnDamaged;
 			}
 			if (_weaponsService != null)
 			{
@@ -70,6 +73,12 @@ namespace Game.GamePlay.Heroes
 		private void OnHeroStateChanged(HeroState heroState)
 		{
 			transform.position = heroState.Position;
+			if (heroState.Health == HeroConfig.Instance.InitialHealth) rendererFlicker?.Stop();
+		}
+
+		private void OnDamaged(int damage)
+		{
+			rendererFlicker?.Play();
 		}
 
 		private void Update()

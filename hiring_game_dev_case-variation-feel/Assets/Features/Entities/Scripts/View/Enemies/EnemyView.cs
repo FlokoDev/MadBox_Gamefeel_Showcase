@@ -8,6 +8,7 @@ namespace Game.GamePlay.Enemies
 	public class EnemyView : MonoBehaviour
 	{
 		[SerializeField] private float rotationSpeed = 10f;
+		[SerializeField] private RendererFlicker rendererFlicker;
 
 		private HeroController _heroController;
 
@@ -38,6 +39,11 @@ namespace Game.GamePlay.Enemies
 		private void OnDestroy()
 		{
 			ServicesLocator.Instance.OnAllServicesInitialized -= OnServicesInitialized;
+		}
+		
+		public void PlayOnHitFeedback()
+		{
+			rendererFlicker?.Play();
 		}
 	}
 }

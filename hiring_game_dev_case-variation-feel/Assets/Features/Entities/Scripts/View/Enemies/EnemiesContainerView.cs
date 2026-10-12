@@ -23,6 +23,7 @@ namespace Game.GamePlay.Enemies
 			_enemiesController.OnEnemySpawned += OnEnemySpawned;
 			_enemiesController.OnEnemyRemoved += OnEnemyRemoved;
 			_enemiesController.OnEnemyPositionChanged += OnEnemyPositionChanged;
+			_enemiesController.OnEnemyDamaged += OnEnemyDamaged;
 		}
 
 		private void OnEnemySpawned(EnemyState enemyState)
@@ -37,6 +38,14 @@ namespace Game.GamePlay.Enemies
 			if (_enemyViews.Remove(enemyId, out EnemyView enemyView))
 			{
 				Destroy(enemyView.gameObject);
+			}
+		}
+
+		private void OnEnemyDamaged(int enemyId)
+		{
+			if (_enemyViews.TryGetValue(enemyId, out EnemyView enemyView))
+			{
+				enemyView.PlayOnHitFeedback();
 			}
 		}
 
@@ -56,6 +65,7 @@ namespace Game.GamePlay.Enemies
 				_enemiesController.OnEnemySpawned -= OnEnemySpawned;
 				_enemiesController.OnEnemyRemoved -= OnEnemyRemoved;
 				_enemiesController.OnEnemyPositionChanged -= OnEnemyPositionChanged;
+				_enemiesController.OnEnemyDamaged -= OnEnemyDamaged;
 			}
 		}
 	}
