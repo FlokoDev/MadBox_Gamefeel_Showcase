@@ -1,6 +1,7 @@
 using Game.GamePlay.Entities;
 using Game.GamePlay.Heroes;
 using Core.ServicesManager;
+using Game.DamageNumbers;
 using UnityEngine;
 
 namespace Game.GamePlay.Enemies
@@ -15,12 +16,14 @@ namespace Game.GamePlay.Enemies
 		[SerializeField] private float rotationSpeed = 10f;
 		[SerializeField] private RendererFlicker rendererFlicker;
 		[SerializeField] private Animator animator;
+		[SerializeField] private DamageNumberView damageNumberPrefab;
 
 		private HeroController _heroController;
 		private Vector3 _previousPosition;
 		private float _moveSpeed;
 
 		public bool IsDead { get; private set; }
+		public DamageNumberView DamageNumberPrefab => damageNumberPrefab;
 
 		public void Initialize(EnemyState state)
 		{

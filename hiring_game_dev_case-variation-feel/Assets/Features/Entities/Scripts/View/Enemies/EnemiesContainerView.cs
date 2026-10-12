@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game.GamePlay.Entities;
 using Core.ServicesManager;
+using Game.DamageNumbers;
 using UnityEngine;
 
 namespace Game.GamePlay.Enemies
@@ -8,6 +9,7 @@ namespace Game.GamePlay.Enemies
 	public class EnemiesContainerView : MonoBehaviour
 	{
 		private EnemiesController _enemiesController;
+		private DamageNumbersService _damageNumbersService;
 		private Dictionary<int, EnemyView> _enemyViews;
 
 		private void Start()
@@ -18,6 +20,7 @@ namespace Game.GamePlay.Enemies
 		private void OnServicesInitialized()
 		{
 			_enemiesController = ServicesLocator.Instance.GetService<EntitiesService>().EnemiesController;
+			_damageNumbersService = ServicesLocator.Instance.GetService<DamageNumbersService>();
 			_enemyViews = new Dictionary<int, EnemyView>();
 
 			_enemiesController.OnEnemySpawned += OnEnemySpawned;
@@ -56,11 +59,12 @@ namespace Game.GamePlay.Enemies
 			if (_enemyViews.TryGetValue(enemyId, out EnemyView view)) view.PlayDeath();
 		}
 
-		private void OnEnemyDamaged(int enemyId)
+		private void OnEnemyDamaged(int enemyId, int damage)
 		{
 			if (_enemyViews.TryGetValue(enemyId, out EnemyView enemyView))
 			{
 				enemyView.PlayOnHitFeedback();
+				_damageNumbersService.Show(enemyView.DamageNumberPrefab, enemyView.transform.position, damage);
 			}
 		}
 

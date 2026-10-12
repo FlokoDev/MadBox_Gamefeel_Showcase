@@ -530,6 +530,7 @@ MonoBehaviour:
   rotationSpeed: 10
   weaponSlot: {fileID: 1993995369825730728}
   rendererFlicker: {fileID: 1149100000000000000}
+  damageNumberPrefab: {fileID: 11400001, guid: c0a8cd87f0634186a24956c315bc586b, type: 3}
 --- !u!114 &1149100000000000000
 MonoBehaviour:
   m_ObjectHideFlags: 0

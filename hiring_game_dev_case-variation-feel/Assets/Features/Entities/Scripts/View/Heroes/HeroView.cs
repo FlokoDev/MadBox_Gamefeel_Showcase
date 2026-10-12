@@ -3,6 +3,7 @@ using Game.GamePlay.Enemies;
 using Game.JoystickInput;
 using Game.Weapons;
 using Core.ServicesManager;
+using Game.DamageNumbers;
 using UnityEngine;
 
 namespace Game.GamePlay.Heroes
@@ -18,10 +19,12 @@ namespace Game.GamePlay.Heroes
 		[SerializeField] private float rotationSpeed = 10f;
 		[SerializeField] private Transform weaponSlot;
 		[SerializeField] private RendererFlicker rendererFlicker;
+		[SerializeField] private DamageNumberView damageNumberPrefab;
 
 		private JoystickInputService _joystickInputService;
 		private HeroController _heroController;
 		private WeaponsService _weaponsService;
+		private DamageNumbersService _damageNumbersService;
 		private Vector2 _currentMovementInput;
 		private WeaponView _currentWeaponView;
 		private bool _isDead;
@@ -36,6 +39,7 @@ namespace Game.GamePlay.Heroes
 			_joystickInputService = ServicesLocator.Instance.GetService<JoystickInputService>();
 			_heroController = ServicesLocator.Instance.GetService<EntitiesService>().HeroController;
 			_weaponsService = ServicesLocator.Instance.GetService<WeaponsService>();
+			_damageNumbersService = ServicesLocator.Instance.GetService<DamageNumbersService>();
 
 			_joystickInputService.OnStateChanged += OnJoystickStateChanged;
 			_heroController.OnStateChanged += OnHeroStateChanged;
@@ -84,6 +88,7 @@ namespace Game.GamePlay.Heroes
 			if (_isDead != heroState.IsDead)
 			{
 				_isDead = heroState.IsDead;
+				if (!_isDead) _damageNumbersService.Clear();
 				if (animator != null)
 				{
 					if (!_isDead)
@@ -101,6 +106,7 @@ namespace Game.GamePlay.Heroes
 		private void OnDamaged(int damage)
 		{
 			rendererFlicker?.Play();
+			_damageNumbersService.Show(damageNumberPrefab, transform.position, damage);
 			if (_isDead || animator == null) return;
 			animator.SetTrigger(HitHash);
 		}

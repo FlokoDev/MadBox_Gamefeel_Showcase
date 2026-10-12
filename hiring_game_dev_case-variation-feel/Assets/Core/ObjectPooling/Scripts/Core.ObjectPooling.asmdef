@@ -1,0 +1,6 @@
+{
+    "name": "Core.ObjectPooling",
+    "rootNamespace": "Core.ObjectPooling",
+    "references": [],
+    "autoReferenced": true
+}
