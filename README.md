@@ -57,6 +57,8 @@ Attack ranges were adjusted
 
 ## Base project notes
 Its a bit ambiguous as to what is considered feedback and what is considered a feature. So I did a bit of both.
-Not creating another view is intentionnal, since I also had to make changes to each controller. (This is why I never do MVCs on early projects)
+Not creating another view is intentionnal, since I also had to make changes to each controller.
+This is why I do not recommand MVCs on early projects : the view/controllers changes Everyday.
+
 Tried my best to fit the maximum into this 4H time span.
 
