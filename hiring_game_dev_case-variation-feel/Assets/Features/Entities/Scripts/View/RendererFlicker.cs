@@ -7,13 +7,13 @@ namespace Game.GamePlay.Entities
 	public class RendererFlicker : MonoBehaviour
 	{
 		[SerializeField] private Renderer[] targetRenderers;
-		[SerializeField] private Color flickerColor = Color.white;
+		[SerializeField, ColorUsage(false, true)] private Color flickerColor = Color.white;
 		[SerializeField, Min(0.01f)] private float duration = 0.12f;
 		[SerializeField, Min(0.01f)] private float interval = 0.04f;
-		[SerializeField] private string colorProperty = "_BaseColor";
-		[SerializeField] private string textureProperty = "_BaseMap";
-		[Tooltip("Replaces the base texture with white during the flash so dark textures also flicker.")]
-		[SerializeField] private bool replaceBaseTexture = true;
+		[SerializeField] private string colorProperty = "_EmissionColor";
+		[SerializeField] private string textureProperty = "_EmissionMap";
+		[Tooltip("Replaces the configured texture with white during the flicker.")]
+		[SerializeField] private bool replaceBaseTexture;
 
 		private sealed class MaterialSlot
 		{
