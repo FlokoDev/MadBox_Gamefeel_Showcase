@@ -19,6 +19,10 @@ namespace Game.GamePlay.Enemies
 		[Tooltip("Maximum number of enemies that can exist at once")]
 		private int maxEnemies = 20;
 
+		[SerializeField, Min(0f)]
+		[Tooltip("Delay before destroying a dead enemy's view. Allow enough time for its death animation and transition.")]
+		private float deathRemovalDelay = 1.2f;
+		
 		[SerializeField]
 		[Tooltip("List of all available enemies in the game")]
 		private List<EnemyConfig> enemies;
@@ -26,6 +30,7 @@ namespace Game.GamePlay.Enemies
 		public float SpawnInterval => spawnInterval;
 		public float SpawnRadius => spawnRadius;
 		public int MaxEnemies => maxEnemies;
+		public float DeathRemovalDelay => Mathf.Max(0f, deathRemovalDelay);
 		public IReadOnlyList<EnemyConfig> Enemies => enemies;
 
 		private Dictionary<string, EnemyConfig> _enemiesMap;

@@ -25,6 +25,7 @@ namespace Game.GamePlay.Heroes
 		// Events
 		public event Action<HeroState> OnStateChanged;
 		public event Action<int> OnDamaged;
+		public event Action<EnemyState> OnAttackPerformed;
 
 		public UniTask<bool> Initialize(EnemiesController enemiesController, JoystickInputService joystickInputService, WeaponsService weaponsService)
 		{
@@ -105,6 +106,7 @@ namespace Game.GamePlay.Heroes
 			{
 				_enemiesController.AttackEnemy(closestEnemy, _weaponsService.CurrentWeapon.Damage);
 				_currentState = new HeroState(_currentState.Position, _currentState.Health, Time.time);
+				OnAttackPerformed?.Invoke(closestEnemy);
 			}
 		}
 

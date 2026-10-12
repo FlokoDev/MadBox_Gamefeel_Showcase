@@ -16,10 +16,13 @@ namespace Game.GamePlay.Enemies
 		public event Action<int> OnEnemyRemoved;
 		public event Action<EnemyState> OnEnemyPositionChanged;
 		public event Action<int> OnEnemyDamaged;
+		public event Action<int> OnEnemyAttackPerformed;
+		public event Action<int> OnEnemyDied;
 
 		// State
 		private Dictionary<int, EnemyState> _enemies;
 		private CancellationTokenSource _cancellationTokenSource;
+		private CancellationTokenSource _deathRemovalCancellationTokenSource;
 		private int _nextEnemyId;
 
 		public IReadOnlyDictionary<int, EnemyState> Enemies => _enemies;
@@ -31,6 +34,7 @@ namespace Game.GamePlay.Enemies
 			_enemies = new Dictionary<int, EnemyState>();
 			_nextEnemyId = 0;
 			_cancellationTokenSource = new CancellationTokenSource();
+			_deathRemovalCancellationTokenSource = new CancellationTokenSource();
 
 			SpawnLoop(_cancellationTokenSource.Token).Forget();
 			UpdateLoop(_cancellationTokenSource.Token).Forget();
@@ -42,6 +46,8 @@ namespace Game.GamePlay.Enemies
 		{
 			_cancellationTokenSource?.Cancel();
 			_cancellationTokenSource?.Dispose();
+			_deathRemovalCancellationTokenSource?.Cancel();
+			_deathRemovalCancellationTokenSource?.Dispose();
 			_enemies.Clear();
 
 			return UniTask.CompletedTask;
@@ -49,6 +55,10 @@ namespace Game.GamePlay.Enemies
 
 		public void ClearAllEnemies()
 		{
+			_deathRemovalCancellationTokenSource.Cancel();
+			_deathRemovalCancellationTokenSource.Dispose();
+			_deathRemovalCancellationTokenSource = new CancellationTokenSource();
+
 			List<int> enemyIds = new List<int>(_enemies.Keys);
 			foreach (int enemyId in enemyIds)
 			{
@@ -75,8 +85,8 @@ namespace Game.GamePlay.Enemies
 
 			if (newHealth <= 0)
 			{
-				Debug.Log($"Enemy id°{enemyState.Id} is dead. Removing it.");
-				RemoveEnemy(enemyState.Id);
+				Debug.Log($"Enemy id°{enemyState.Id} is dead.");
+				KillEnemy(enemyState.Id).Forget();
 			}
 			else
 			{
@@ -84,6 +94,8 @@ namespace Game.GamePlay.Enemies
 				_enemies[enemyState.Id] = updatedEnemy;
 			}
 		}
+
+		
 
 		private async UniTaskVoid SpawnLoop(CancellationToken cancellationToken)
 		{
@@ -167,8 +179,23 @@ namespace Game.GamePlay.Enemies
 
 					EnemyState updatedEnemy = new EnemyState(enemy.Id, enemy.Position, enemy.Health, enemy.Config, Time.time);
 					_enemies[enemy.Id] = updatedEnemy;
+					OnEnemyAttackPerformed?.Invoke(enemy.Id);
 				}
 			}
+		}
+		
+		private async UniTask KillEnemy(int enemyId)
+		{
+			if (!_enemies.Remove(enemyId)) return;
+			
+			CancellationToken cancellationToken = _deathRemovalCancellationTokenSource.Token;
+			OnEnemyDied?.Invoke(enemyId);
+			
+			await UniTask.Delay(TimeSpan.FromSeconds(EnemiesConfig.Instance.DeathRemovalDelay),
+				cancellationToken: cancellationToken, cancelImmediately: true).SuppressCancellationThrow();
+
+			Debug.Log($"Removing Enemy id°{enemyId}'s corpse.");
+			OnEnemyRemoved?.Invoke(enemyId);
 		}
 	}
 }

@@ -48,6 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rotationSpeed: 10
   rendererFlicker: {fileID: 1149100000000000000}
+  animator: {fileID: 6926839794853975167}
 --- !u!114 &1149100000000000000
 MonoBehaviour:
   m_ObjectHideFlags: 0

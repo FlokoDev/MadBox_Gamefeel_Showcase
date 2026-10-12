@@ -22,14 +22,19 @@ namespace Game.GamePlay.Enemies
 
 			_enemiesController.OnEnemySpawned += OnEnemySpawned;
 			_enemiesController.OnEnemyRemoved += OnEnemyRemoved;
+			
 			_enemiesController.OnEnemyPositionChanged += OnEnemyPositionChanged;
+			_enemiesController.OnEnemyAttackPerformed += OnEnemyAttackPerformed;
+			
 			_enemiesController.OnEnemyDamaged += OnEnemyDamaged;
+			_enemiesController.OnEnemyDied += OnEnemyDied;
 		}
 
 		private void OnEnemySpawned(EnemyState enemyState)
 		{
 			EnemyView enemyView = Instantiate(enemyState.Config.Prefab, transform);
 			enemyView.transform.position = enemyState.Position;
+			enemyView.Initialize(enemyState);
 			_enemyViews[enemyState.Id] = enemyView;
 		}
 
@@ -39,6 +44,16 @@ namespace Game.GamePlay.Enemies
 			{
 				Destroy(enemyView.gameObject);
 			}
+		}
+
+		private void OnEnemyAttackPerformed(int enemyId)
+		{
+			if (_enemyViews.TryGetValue(enemyId, out EnemyView view)) view.PlayAttack();
+		}
+
+		private void OnEnemyDied(int enemyId)
+		{
+			if (_enemyViews.TryGetValue(enemyId, out EnemyView view)) view.PlayDeath();
 		}
 
 		private void OnEnemyDamaged(int enemyId)
@@ -66,6 +81,8 @@ namespace Game.GamePlay.Enemies
 				_enemiesController.OnEnemyRemoved -= OnEnemyRemoved;
 				_enemiesController.OnEnemyPositionChanged -= OnEnemyPositionChanged;
 				_enemiesController.OnEnemyDamaged -= OnEnemyDamaged;
+				_enemiesController.OnEnemyAttackPerformed -= OnEnemyAttackPerformed;
+				_enemiesController.OnEnemyDied -= OnEnemyDied;
 			}
 		}
 	}

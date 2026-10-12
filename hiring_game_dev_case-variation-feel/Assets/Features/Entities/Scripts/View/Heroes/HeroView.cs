@@ -1,4 +1,5 @@
 using Game.GamePlay.Entities;
+using Game.GamePlay.Enemies;
 using Game.JoystickInput;
 using Game.Weapons;
 using Core.ServicesManager;
@@ -9,6 +10,9 @@ namespace Game.GamePlay.Heroes
 	public class HeroView : MonoBehaviour
 	{
 		private static readonly int SpeedHash = Animator.StringToHash("Speed");
+		private static readonly int AttackHash = Animator.StringToHash("Attack");
+		private static readonly int HitHash = Animator.StringToHash("Hit");
+		private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
 
 		[SerializeField] private Animator animator;
 		[SerializeField] private float rotationSpeed = 10f;
@@ -20,6 +24,7 @@ namespace Game.GamePlay.Heroes
 		private WeaponsService _weaponsService;
 		private Vector2 _currentMovementInput;
 		private WeaponView _currentWeaponView;
+		private bool _isDead;
 
 		private void Start()
 		{
@@ -35,6 +40,7 @@ namespace Game.GamePlay.Heroes
 			_joystickInputService.OnStateChanged += OnJoystickStateChanged;
 			_heroController.OnStateChanged += OnHeroStateChanged;
 			_heroController.OnDamaged += OnDamaged;
+			_heroController.OnAttackPerformed += OnAttackPerformed;
 			_weaponsService.OnWeaponChanged += OnWeaponChanged;
 
 			OnJoystickStateChanged(_joystickInputService.CurrentState);
@@ -53,6 +59,7 @@ namespace Game.GamePlay.Heroes
 			{
 				_heroController.OnStateChanged -= OnHeroStateChanged;
 				_heroController.OnDamaged -= OnDamaged;
+				_heroController.OnAttackPerformed -= OnAttackPerformed;
 			}
 			if (_weaponsService != null)
 			{
@@ -74,11 +81,39 @@ namespace Game.GamePlay.Heroes
 		{
 			transform.position = heroState.Position;
 			if (heroState.Health == HeroConfig.Instance.InitialHealth) rendererFlicker?.Stop();
+			if (_isDead != heroState.IsDead)
+			{
+				_isDead = heroState.IsDead;
+				if (animator != null)
+				{
+					if (!_isDead)
+					{
+						// Restart restores the initial pose and clears pending attack/hit triggers.
+						animator.Rebind();
+						animator.Update(0f);
+					}
+					animator.SetBool(IsDeadHash, _isDead);
+				}
+			}
+			UpdateAnimator();
 		}
 
 		private void OnDamaged(int damage)
 		{
 			rendererFlicker?.Play();
+			if (_isDead || animator == null) return;
+			animator.SetTrigger(HitHash);
+		}
+
+		private void OnAttackPerformed(EnemyState target)
+		{
+			if (_isDead) return;
+			Vector3 direction = target.Position - transform.position;
+			direction.y = 0f;
+			// Alice's model has a 180-degree local rotation, matching the movement orientation.
+			if (direction.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(-direction);
+			if (animator == null) return;
+			animator.SetTrigger(AttackHash);
 		}
 
 		private void Update()
