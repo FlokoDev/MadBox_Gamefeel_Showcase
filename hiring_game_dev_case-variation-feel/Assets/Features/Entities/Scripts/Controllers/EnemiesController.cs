@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Game.GamePlay.Heroes;
+using Game.Generic.Tweening;
 using UnityEngine;
 
 namespace Game.GamePlay.Enemies
@@ -10,28 +11,31 @@ namespace Game.GamePlay.Enemies
 	public class EnemiesController
 	{
 		private HeroController _heroController;
+		private TweenService _tweenService;
 
 		// Events
 		public event Action<EnemyState> OnEnemySpawned;
 		public event Action<int> OnEnemyRemoved;
 		public event Action<EnemyState> OnEnemyPositionChanged;
-		public event Action<int, int> OnEnemyDamaged;
+		public event Action<EnemyDamageEvent> OnEnemyDamaged;
 		public event Action<int> OnEnemyAttackPerformed;
 		public event Action<int> OnEnemyDied;
 
 		// State
 		private Dictionary<int, EnemyState> _enemies;
+		private readonly Dictionary<int, TweenHandle> _appliedForces = new Dictionary<int, TweenHandle>();
 		private CancellationTokenSource _cancellationTokenSource;
 		private CancellationTokenSource _deathRemovalCancellationTokenSource;
 		private int _nextEnemyId;
 
 		public IReadOnlyDictionary<int, EnemyState> Enemies => _enemies;
-
-		public UniTask<bool> Initialize(HeroController heroController)
+		public UniTask<bool> Initialize(HeroController heroController, TweenService tweenService)
 		{
 			_heroController = heroController;
+			_tweenService = tweenService;
 
 			_enemies = new Dictionary<int, EnemyState>();
+			StopAppliedForces();
 			_nextEnemyId = 0;
 			_cancellationTokenSource = new CancellationTokenSource();
 			_deathRemovalCancellationTokenSource = new CancellationTokenSource();
@@ -49,12 +53,16 @@ namespace Game.GamePlay.Enemies
 			_deathRemovalCancellationTokenSource?.Cancel();
 			_deathRemovalCancellationTokenSource?.Dispose();
 			_enemies.Clear();
+			StopAppliedForces();
 
 			return UniTask.CompletedTask;
 		}
 
+		public bool IsEnemyStaggered(int enemyId) => _appliedForces.TryGetValue(enemyId, out TweenHandle force) && force != null && force.IsActive;
+
 		public void ClearAllEnemies()
 		{
+			StopAppliedForces();
 			_deathRemovalCancellationTokenSource.Cancel();
 			_deathRemovalCancellationTokenSource.Dispose();
 			_deathRemovalCancellationTokenSource = new CancellationTokenSource();
@@ -68,35 +76,47 @@ namespace Game.GamePlay.Enemies
 
 		public void RemoveEnemy(int enemyId)
 		{
+			StopAppliedForce(enemyId);
 			if (_enemies.Remove(enemyId))
 			{
 				OnEnemyRemoved?.Invoke(enemyId);
 			}
 		}
 
-		public void AttackEnemy(EnemyState enemyState, int damage)
+		public void AttackEnemy(EnemyState enemyState, int damage, Vector3 sourcePosition,
+			float knockbackDistance, float knockbackDuration)
 		{
-			if (!_enemies.ContainsKey(enemyState.Id)) return;
+			if (damage <= 0 || !_enemies.TryGetValue(enemyState.Id, out enemyState)) return;
 
 			int newHealth = enemyState.Health - damage;
-			if (damage > 0) OnEnemyDamaged?.Invoke(enemyState.Id, Mathf.Min(damage, Mathf.Max(0, enemyState.Health)));
-
 			Debug.Log($"Attacked enemy id°{enemyState.Id}. Health : {enemyState.Health} -> {newHealth}");
+			OnEnemyDamaged?.Invoke(new EnemyDamageEvent(enemyState.Id, damage));
 
 			if (newHealth <= 0)
 			{
-				Debug.Log($"Enemy id°{enemyState.Id} is dead.");
 				KillEnemy(enemyState.Id).Forget();
+				return;
 			}
-			else
-			{
-				EnemyState updatedEnemy = new EnemyState(enemyState.Id, enemyState.Position, newHealth,
-					enemyState.Config, curveSide: enemyState.CurveSide);
-				_enemies[enemyState.Id] = updatedEnemy;
-			}
+
+			_enemies[enemyState.Id] = new EnemyState(enemyState.Id, enemyState.Position, newHealth,
+				enemyState.Config, curveSide: enemyState.CurveSide);
+			ApplyForce(enemyState, sourcePosition, knockbackDistance, knockbackDuration);
 		}
 
-		
+		public void AOEAttack(Vector3 center, float radius, int damage, Vector3 sourcePosition,
+			float knockbackDistance, float knockbackDuration)
+		{
+			List<EnemyState> targets = new List<EnemyState>();
+			float radiusSquared = radius * radius;
+
+			foreach (EnemyState enemy in _enemies.Values)
+			{
+				Vector3 offset = enemy.Position - center;
+				offset.y = 0f;
+				if (offset.sqrMagnitude <= radiusSquared) targets.Add(enemy);
+			}
+			foreach (EnemyState enemy in targets) AttackEnemy(enemy, damage, sourcePosition, knockbackDistance, knockbackDuration);
+		}
 
 		private async UniTaskVoid SpawnLoop(CancellationToken cancellationToken)
 		{
@@ -162,6 +182,8 @@ namespace Game.GamePlay.Enemies
 
 		private void UpdateEnemy(EnemyState enemy)
 		{
+			if (IsEnemyStaggered(enemy.Id)) return;
+			
 			Vector3 heroPosition = _heroController.CurrentState.Position;
 			float distanceToHero = Vector3.Distance(enemy.Position, heroPosition);
 
@@ -169,27 +191,23 @@ namespace Game.GamePlay.Enemies
 			{
 				Vector3 direction = GetMovementDirection(enemy, heroPosition);
 				Vector3 newPosition = enemy.Position + direction * (enemy.Config.Speed * Time.deltaTime);
-
-				EnemyState updatedEnemy = new EnemyState(enemy.Id, newPosition, enemy.Health,
-					enemy.Config, enemy.LastAttackTime, enemy.CurveSide);
-				_enemies[enemy.Id] = updatedEnemy;
-				OnEnemyPositionChanged?.Invoke(updatedEnemy);
+				SetEnemyPosition(enemy.Id, newPosition);
+				return;
 			}
-			else
-			{
-				if (Time.time - enemy.LastAttackTime >= enemy.Config.AttackCooldown)
-				{
-					_heroController.TakeHit(enemy.Config.AttackDamage);
-
-					EnemyState updatedEnemy = new EnemyState(enemy.Id, enemy.Position, enemy.Health,
-						enemy.Config, Time.time, enemy.CurveSide);
-					_enemies[enemy.Id] = updatedEnemy;
-					OnEnemyAttackPerformed?.Invoke(enemy.Id);
-				}
-			}
+			AttackHero(enemy);
 		}
-		
-		private static Vector3 GetMovementDirection(EnemyState enemy, Vector3 heroPosition)
+
+		private void AttackHero(EnemyState enemy)
+		{
+			if (Time.time - enemy.LastAttackTime < enemy.Config.AttackCooldown) return;
+			
+			_heroController.TakeHit(enemy.Config.AttackDamage);
+			EnemyState updatedEnemy = new EnemyState(enemy.Id, enemy.Position, enemy.Health, enemy.Config, Time.time, enemy.CurveSide);
+			_enemies[enemy.Id] = updatedEnemy;
+			OnEnemyAttackPerformed?.Invoke(enemy.Id);
+		}
+
+		private Vector3 GetMovementDirection(EnemyState enemy, Vector3 heroPosition)
 		{
 			Vector3 toHero = heroPosition - enemy.Position;
 			Vector3 forward = toHero.normalized;
@@ -199,9 +217,45 @@ namespace Game.GamePlay.Enemies
 			return (forward + sideways * (enemy.Config.CurveStrength * influence * enemy.CurveSide)).normalized;
 		}
 
+		private void SetEnemyPosition(int enemyId, Vector3 position)
+		{
+			if (_heroController.CurrentState.IsDead || !_enemies.TryGetValue(enemyId, out EnemyState enemy)) return;
+			
+			EnemyState updatedEnemy = new EnemyState(enemy.Id, position, enemy.Health, enemy.Config, enemy.LastAttackTime, enemy.CurveSide);
+			_enemies[enemyId] = updatedEnemy;
+			OnEnemyPositionChanged?.Invoke(updatedEnemy);
+		}
+
+		private void ApplyForce(EnemyState enemy, Vector3 sourcePosition, float distance, float duration)
+		{
+			if (distance <= 0f) return;
+			Vector3 direction = enemy.Position - sourcePosition;
+			direction.y = 0f;
+			direction.Normalize();
+			if (direction == Vector3.zero) return;
+
+			StopAppliedForce(enemy.Id);
+			_appliedForces[enemy.Id] = _tweenService.DOMove(enemy.Position,
+				enemy.Position + direction * distance, duration,
+				position => SetEnemyPosition(enemy.Id, position),
+				() => _appliedForces.Remove(enemy.Id));
+		}
+
+		private void StopAppliedForce(int enemyId)
+		{
+			if (_appliedForces.Remove(enemyId, out TweenHandle force)) force?.Stop();
+		}
+
+		private void StopAppliedForces()
+		{
+			foreach (TweenHandle force in _appliedForces.Values) force?.Stop();
+			_appliedForces.Clear();
+		}
+
 		private async UniTask KillEnemy(int enemyId)
 		{
 			if (!_enemies.Remove(enemyId)) return;
+			StopAppliedForce(enemyId);
 			
 			CancellationToken cancellationToken = _deathRemovalCancellationTokenSource.Token;
 			OnEnemyDied?.Invoke(enemyId);
@@ -212,5 +266,6 @@ namespace Game.GamePlay.Enemies
 			Debug.Log($"Removing Enemy id°{enemyId}'s corpse.");
 			OnEnemyRemoved?.Invoke(enemyId);
 		}
+
 	}
 }

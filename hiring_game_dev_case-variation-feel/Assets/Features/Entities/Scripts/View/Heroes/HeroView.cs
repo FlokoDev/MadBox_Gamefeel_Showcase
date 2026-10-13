@@ -4,7 +4,9 @@ using Game.JoystickInput;
 using Game.Weapons;
 using Core.ServicesManager;
 using Game.DamageNumbers;
+using Game.Generic.Tweening;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Game.GamePlay.Heroes
 {
@@ -21,10 +23,18 @@ namespace Game.GamePlay.Heroes
 		[SerializeField] private RendererFlicker rendererFlicker;
 		[SerializeField] private DamageNumberView damageNumberPrefab;
 
+		[Header("On Hit Punch Scale")]
+		[Tooltip("Relative scale change per axis: negative squashes, positive stretches.")]
+		[FormerlySerializedAs("punchStrength")]
+		[SerializeField] private Vector3 onHitPunchScaleStrength = new Vector3(0.18f, -0.22f, 0.18f);
+		[FormerlySerializedAs("punchDuration")]
+		[SerializeField, Min(0.01f)] private float onHitPunchScaleDuration = 0.2f;
+
 		private JoystickInputService _joystickInputService;
 		private HeroController _heroController;
 		private WeaponsService _weaponsService;
 		private DamageNumbersService _damageNumbersService;
+		private TweenService _tweenService;
 		private Vector2 _currentMovementInput;
 		private WeaponView _currentWeaponView;
 		private bool _isDead;
@@ -40,6 +50,7 @@ namespace Game.GamePlay.Heroes
 			_heroController = ServicesLocator.Instance.GetService<EntitiesService>().HeroController;
 			_weaponsService = ServicesLocator.Instance.GetService<WeaponsService>();
 			_damageNumbersService = ServicesLocator.Instance.GetService<DamageNumbersService>();
+			_tweenService = ServicesLocator.Instance.GetService<TweenService>();
 
 			_joystickInputService.OnStateChanged += OnJoystickStateChanged;
 			_heroController.OnStateChanged += OnHeroStateChanged;
@@ -75,6 +86,8 @@ namespace Game.GamePlay.Heroes
 			}
 		}
 
+		private void OnDisable() => _tweenService?.Stop(transform);
+
 		private void OnJoystickStateChanged(JoystickState state)
 		{
 			_currentMovementInput = state.IsActive ? state.MovementVector : Vector2.zero;
@@ -88,6 +101,7 @@ namespace Game.GamePlay.Heroes
 			if (_isDead != heroState.IsDead)
 			{
 				_isDead = heroState.IsDead;
+				_tweenService?.Stop(transform);
 				if (!_isDead) _damageNumbersService.Clear();
 				if (animator != null)
 				{
@@ -106,6 +120,7 @@ namespace Game.GamePlay.Heroes
 		private void OnDamaged(int damage)
 		{
 			rendererFlicker?.Play();
+			if (!_isDead) _tweenService?.DOPunchScale(transform, onHitPunchScaleStrength, onHitPunchScaleDuration);
 			_damageNumbersService.Show(damageNumberPrefab, transform.position, damage);
 			if (_isDead || animator == null) return;
 			animator.SetTrigger(HitHash);
@@ -165,5 +180,6 @@ namespace Game.GamePlay.Heroes
 			_currentWeaponView.transform.localPosition = Vector3.zero;
 			_currentWeaponView.transform.localRotation = Quaternion.identity;
 		}
+
 	}
 }

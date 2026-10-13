@@ -24,7 +24,11 @@ namespace Core.ObjectPooling
 			_pool = new ObjectPool<T>(
 				() => Object.Instantiate(prefab, parent),
 				actionOnRelease: instance => instance.gameObject.SetActive(false),
-				actionOnDestroy: instance => Object.Destroy(instance.gameObject),
+				actionOnDestroy: instance =>
+				{
+					// Unity can destroy pooled objects before the owning service is reset on shutdown.
+					if (instance != null) Object.Destroy(instance.gameObject);
+				},
 				collectionCheck: true, defaultCapacity: Mathf.Min(16, maxSize), maxSize: maxSize);
 		}
 

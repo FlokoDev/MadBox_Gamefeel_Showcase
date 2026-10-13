@@ -46,11 +46,10 @@ namespace Game.GamePlay.Heroes
 			if (_currentState.IsDead) return;
 
 			int newHealth = Mathf.Max(0, _currentState.Health - damage);
-			int appliedDamage = _currentState.Health - newHealth;
 			Debug.Log($"Hero is taking a hit. Health : {_currentState.Health} -> {newHealth}");
 			_currentState = new HeroState(_currentState.Position, newHealth, _currentState.LastAttackTime);
 			OnStateChanged?.Invoke(_currentState);
-			if (appliedDamage > 0) OnDamaged?.Invoke(appliedDamage);
+			if (damage > 0) OnDamaged?.Invoke(damage);
 
 			if (_currentState.IsDead)
 			{
@@ -104,7 +103,17 @@ namespace Game.GamePlay.Heroes
 
 			if (TryFindClosestEnemy(out EnemyState closestEnemy))
 			{
-				_enemiesController.AttackEnemy(closestEnemy, _weaponsService.CurrentWeapon.Damage);
+				if (_weaponsService.CurrentWeapon.AoeRadius > 0f)
+				{
+					_enemiesController.AOEAttack(closestEnemy.Position, _weaponsService.CurrentWeapon.AoeRadius,
+						_weaponsService.CurrentWeapon.Damage, _currentState.Position,
+						_weaponsService.CurrentWeapon.KnockbackDistance, _weaponsService.CurrentWeapon.KnockbackDuration);
+				}
+				else
+				{
+					_enemiesController.AttackEnemy(closestEnemy, _weaponsService.CurrentWeapon.Damage,
+						_currentState.Position, _weaponsService.CurrentWeapon.KnockbackDistance, _weaponsService.CurrentWeapon.KnockbackDuration);
+				}
 				_currentState = new HeroState(_currentState.Position, _currentState.Health, Time.time);
 				OnAttackPerformed?.Invoke(closestEnemy);
 			}

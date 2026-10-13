@@ -48,6 +48,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rotationSpeed: 10
   rendererFlicker: {fileID: 1149100000000000000}
+  onHitPunchScaleStrength: {x: 0.18, y: -0.22, z: 0.18}
+  onHitPunchScaleDuration: 0.2
   animator: {fileID: 6926839794853975167}
   damageNumberPrefab: {fileID: 11400001, guid: 61a4f440074e4bcbbbbdb299cd603ee6, type: 3}
 --- !u!114 &1149100000000000000

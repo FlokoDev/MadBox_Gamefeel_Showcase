@@ -15,5 +15,8 @@ MonoBehaviour:
   id: long_sword
   damage: 50
   range: 5
+  aoeRadius: 1.25
+  knockbackDistance: 1
+  knockbackDuration: 0.15
   cooldown: 2
   prefab: {fileID: -3291902027411944700, guid: bac79aa2a0057e5429a664d3f336da3d, type: 3}

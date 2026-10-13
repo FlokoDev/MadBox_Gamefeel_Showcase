@@ -15,5 +15,8 @@ MonoBehaviour:
   id: curved_sword
   damage: 15
   range: 2
+  aoeRadius: 1.25
+  knockbackDistance: 1
+  knockbackDuration: 0.15
   cooldown: 0.5
   prefab: {fileID: -654538669453326304, guid: 4d0814cafad460246890ec829fa7071d, type: 3}

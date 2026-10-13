@@ -31,6 +31,11 @@ namespace Game.GamePlay.Enemies
 			
 			_enemiesController.OnEnemyDamaged += OnEnemyDamaged;
 			_enemiesController.OnEnemyDied += OnEnemyDied;
+
+			foreach (EnemyState enemy in _enemiesController.Enemies.Values)
+			{
+				OnEnemySpawned(enemy);
+			}
 		}
 
 		private void OnEnemySpawned(EnemyState enemyState)
@@ -59,12 +64,12 @@ namespace Game.GamePlay.Enemies
 			if (_enemyViews.TryGetValue(enemyId, out EnemyView view)) view.PlayDeath();
 		}
 
-		private void OnEnemyDamaged(int enemyId, int damage)
+		private void OnEnemyDamaged(EnemyDamageEvent damage)
 		{
-			if (_enemyViews.TryGetValue(enemyId, out EnemyView enemyView))
+			if (_enemyViews.TryGetValue(damage.EnemyId, out EnemyView enemyView))
 			{
 				enemyView.PlayOnHitFeedback();
-				_damageNumbersService.Show(enemyView.DamageNumberPrefab, enemyView.transform.position, damage);
+				_damageNumbersService.Show(enemyView.DamageNumberPrefab, enemyView.transform.position, damage.Damage);
 			}
 		}
 
